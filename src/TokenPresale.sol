@@ -87,42 +87,149 @@ contract TokenPresale is ILaunchpad {
     }
 
     // main functions
-    function buyTokens(bytes32[] calldata proof) external payable {}
-    function claimTokens() external {}
-    function withdrawEth() external {}
-    function withdrawTokens() external {}
-    function updateEthPricePerToken(uint256 _ethPricePerToken) external onlyOperator {}
-    function increaseHardCap(uint256 _tokenHardCapIncrement) external {}
-    function transferOperatorOwnership(address newOperator) external onlyOperator {}
+    function buyTokens(bytes32[] calldata proof) external payable {
+        // buy tokens logic
+        // Check if whitelisted
+        // Check if enough ETH sent
+        // Calculate token amount based on ETH price
+        // Transfer ETH to contract
+        // Transfer tokens to buyer
+        // Emit event
+    }
+    function claimTokens() external {
+        // Check if vesting period has passed
+        // and claimed amount is less than purchased amount
+        // Check if vesting period has passed
+        // and claimed amount is less than purchased amount
+    }
+    function withdrawEth() external {
+        // Check if vesting period is over
+        // and withdraw amount is less than user's balance
+        // and vesting period is over
+        // Check if vesting period has passed
+        // and withdraw amount is less than or equal to user's purchased amount
+    }
+    function withdrawTokens() external {
+        // Check if vesting period is over
+        // and claimed amount is less than purchased amount
+        // or vesting period is over
+        // and claimed amount is less than purchased amount
+    }
 
-    function updateWhitelist(uint256 _wlBlockNumber, uint256 _wlMinBalance, bytes32 _wlRoot) external onlyOperator {}
-    function setVestingDuration(uint256 _vestingDuration) external onlyOperator {}
+    function updateEthPricePerToken(uint256 _ethPricePerToken) external onlyOperator {
+        ethPricePerToken = _ethPricePerToken;
+    }
 
-    function setName(string memory _name) external onlyOperator {}
+    function increaseHardCap(uint256 _tokenHardCapIncrement) external {
+        tokenHardCap += _tokenHardCapIncrement;
+        emit TokenHardCapUpdated(address(0), tokenHardCap);
+    }
 
-    function transferPurchasedOwnership(address _newOwner) external {}
-    function ethToToken(uint256 ethAmount) public view returns (uint256 num) {}
-    function getPurchasedAmount(address _address) external view {}
-    function getClaimedAmount(address _address) external view {}
-    function getTotalPurchasedAmount() external view {}
+    function transferOperatorOwnership(address newOperator) external onlyOperator {
+        require(newOperator != address(0), "New operator");
+        operator = newOperator;
+        emit OperatorTransferred(msg.sender, newOperator);
+    }
 
-    function getProtocolFee() external view {}
-    function getProtocolFeeAddress() external view {}
-    function getOperator() external view {}
-    function getFactory() external view {}
-    function getStartDate() external view {}
-    function getEndDate() external view {}
-    function getMinTokenBuy() external view {}
-    function getMaxTokenBuy() external view {}
-    function getReleaseDelay() external view {}
-    function getVestingDuration() external view {}
-    function getWLBlockNumber() external view {}
-    function getWLMinBalance() external view {}
-    function getWLRoot() external view {}
+    function updateWhitelist(uint256 _wlBlockNumber, uint256 _wlMinBalance, bytes32 _wlRoot) external onlyOperator {
+        wlBlockNumber = _wlBlockNumber;
+        wlMinBalance = _wlMinBalance;
+        wlRoot = _wlRoot;
+    }
 
-    function claimableAmount(address _address) external view returns (uint256 num) {}
+    function setVestingDuration(uint256 _vestingDuration) external onlyOperator {
+        vestingDuration = _vestingDuration;
+    }
 
-    function isStarted() external view returns (bool) {}
-    function isEnded() external view returns (bool) {}
-    function isClaimable() external view returns (bool) {}
+    function setName(string memory _name) external onlyOperator {
+        name = _name;
+    }
+
+    function transferPurchasedOwnership(address _newOwner) external {
+        require(msg.sender == operator, "Only operator");
+        purchasedAmount[_newOwner] = purchasedAmount[msg.sender];
+        purchasedAmount[_newOwner] += purchasedAmount[msg.sender];
+        purchasedAmount[msg.sender] = 0;
+    }
+
+    function ethToToken(uint256 ethAmount) public view returns (uint256 num) {
+        // Calculate token amount based on ETH price
+        // Transfer ETH to contract
+        // Transfer tokens to buyer
+        // Emit event
+    }
+    function getPurchasedAmount(address _address) external view {
+        // Check if address exists in mapping
+        // Return purchased amount
+        // Check if address exists in mapping
+        // Return purchased amount
+        // Check if address exists in mapping
+        // Return 0 if address is not in mapping
+        // Else return purchased amount
+    }
+    function getClaimedAmount(address _address) external view {
+        // Check if address exists in mapping
+        // Return claimed amount
+    }
+    function getTotalPurchasedAmount() external view {
+        // Return totalPurchasedAmount
+    }
+
+    function getProtocolFee() external view {
+        // Return protocolFee
+    }
+    function getProtocolFeeAddress() external view {
+        // Return protocolFeeAddress
+    }
+    function getOperator() external view {
+        // Return operator
+    }
+    function getFactory() external view {
+        // Return factory
+    }
+    function getStartDate() external view {
+        // Return startDate
+    }
+    function getEndDate() external view {
+        // Return endDate
+    }
+    function getMinTokenBuy() external view {
+        // Return minTokenBuy
+    }
+    function getMaxTokenBuy() external view {
+        // Return maxTokenBuy
+    }
+    function getReleaseDelay() external view {
+        // Return releaseDelay
+    }
+    function getVestingDuration() external view {
+        // Return vestingDuration
+    }
+    function getWLBlockNumber() external view {
+        // Return wlBlockNumber
+    }
+    function getWLMinBalance() external view {
+        // Return wlMinBalance
+    }
+    function getWLRoot() external view {
+        // Return wlRoot
+    }
+
+    function claimableAmount(address _address) external view returns (uint256 num) {
+        // Check if address exists in mapping
+        // Check if vesting period has passed
+        // Calculate claimable amount based on purchased, claimed and vest
+    }
+
+    function isStarted() external view returns (bool) {
+        // Check if current block timestamp is greater than or equal to start date
+    }
+    function isEnded() external view returns (bool) {
+        // Check if current block timestamp is greater than or equal to end date
+    }
+    function isClaimable() external view returns (bool) {
+        // check if current block timestamp is greater than or equal to start date
+        // and less than end date
+        // and current block timestamp is greater than or equal to start of claim period
+    }
 }
