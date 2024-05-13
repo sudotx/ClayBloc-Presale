@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+// import chainlink price aggr.import uniswap v2,v3 interfaces
+
+//
 interface ILaunchpad {
     // Events
     event TokensPurchased(address indexed _token, address indexed buyer, uint256 amount);
@@ -32,6 +35,12 @@ interface ILaunchpad {
 
 contract TokenPresale is ILaunchpad {
     // Variables
+    address public creator;
+
+    uint256 public platformTax; // base 10000
+    uint256 public lockinPeriod; // lockin
+    uint256 public tokenPrice;
+
     address public operator;
     string public name;
     uint256 public immutable tokenUnit;
@@ -51,7 +60,20 @@ contract TokenPresale is ILaunchpad {
     uint256 public totalPurchasedAmount;
     uint256 public wlBlockNumber;
     uint256 public wlMinBalance;
+    uint256 public maxAllocation;
+    uint256 public globalTaxRate;
+    uint256 public whitelistTxRate;
     bytes32 public wlRoot;
+
+    bool public isKYCEnabled;
+
+    // include a token representing users shares
+
+    // include a token users can use to participate in the ICO
+
+    // important
+    uint256 constant PCT_BASE = 10 ** 18;
+    address public marketingWallet;
 
     // Modifiers
     modifier onlyOperator() {
@@ -232,4 +254,37 @@ contract TokenPresale is ILaunchpad {
         // and less than end date
         // and current block timestamp is greater than or equal to start of claim period
     }
+
+    // user whitelist allocation
+
+    // whitelist user (protoected)
+
+    // set allocation and tax (protected)
+
+    // set marketing wallet
+
+    // deposit: ie invest token into token sale
+    function deposit(uint256 amount) external {
+        // check if kyc is enabled, if so check kyc of user
+
+        // check if user is blacklisted
+
+        // check if time is correct
+    }
+
+    // calculate max allocation
+
+    // calculate max tax fre allocation
+
+    // get user tax rate
+
+    // claim usdc from private round
+
+    // check if user can claim
+
+    // send locked usd to admin wallet
+
+    // lock usd for vesting period
+    // calculate vested amount
+    // send vested amount to user
 }
