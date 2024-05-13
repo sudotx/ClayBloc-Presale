@@ -40,12 +40,12 @@ contract TokenPresale is ILaunchpad {
     uint256 public lockinPeriod;
     uint256 public tokenPrice;
 
-    address immutable operator;
+    address public operator;
     string public name;
     uint256 constant tokenUnit = 10 ** 18;
     address public immutable factory;
     uint256 public ethPricePerToken;
-    uint256 constant public = 1000 ether;
+    uint256 public tokenHardCap = 1000 ether;
     uint256 immutable minTokenBuy;
     uint256 immutable maxTokenBuy;
     uint256 immutable startDate;
@@ -57,7 +57,7 @@ contract TokenPresale is ILaunchpad {
     mapping(address => uint256) public purchasedAmount;
     mapping(address => uint256) public claimedAmount;
     uint256 public totalPurchasedAmount;
-    uint256 immutable wlBlockNumber = block.number;
+    uint256 public wlBlockNumber = block.number;
     uint256 public wlMinBalance = 1 ether;
     uint256 public maxAllocation;
     uint256 public globalTaxRate;
@@ -66,13 +66,7 @@ contract TokenPresale is ILaunchpad {
 
     bool public isKYCEnabled;
 
-    // include a token representing users shares
-
     // include a token users can use to participate in the ICO
-
-    // important
-    uint256 constant PCT_BASE = 10 ** 18;
-    address public marketingWallet;
 
     // Modifiers
     modifier onlyOperator() {
@@ -104,7 +98,7 @@ contract TokenPresale is ILaunchpad {
     /// transfers the tokens to the buyer, and emits an event.
     /// @param proof The Merkle proof to verify the user is whitelisted.
 
-    function buyTokens(bytes32[] calldata proof, uint256 amount) external payable {
+    function buyTokens(bytes32[] calldata proof) external payable {
         // check if kyc is enabled, if so check kyc of user
 
         // check if user is blacklisted
@@ -224,6 +218,7 @@ contract TokenPresale is ILaunchpad {
     function getPurchasedAmount(address _address) external view {
         // Check if address exists in mapping
         // Return purchased amount
+        // Return purchased amount
         // Check if address exists in mapping
         // Return 0 if address is not in mapping
         // Else return purchased amount
@@ -311,13 +306,29 @@ contract TokenPresale is ILaunchpad {
 
     function isStarted() external view returns (bool) {
         // Check if current block timestamp is greater than or equal to start date
+        return true;
     }
+
     function isEnded() external view returns (bool) {
         // Check if current block timestamp is greater than or equal to end date
+        return true;
     }
+
     function isClaimable() external view returns (bool) {
         // check if current block timestamp is greater than or equal to start date
         // and less than end date
         // and current block timestamp is greater than or equal to start of claim period
+        return true;
+    }
+
+    /// Allows a user to deposit a specified amount into the token presale.
+    /// This function checks if KYC is enabled and the user has passed KYC, if the user is not blacklisted, and if the deposit is being made during the correct time period.
+    /// @param amount The amount the user wants to deposit.
+    function deposit(uint256 amount) external {
+        // check if kyc is enabled, if so check kyc of user
+
+        // check if user is blacklisted
+
+        // check if time is correct
     }
 }
