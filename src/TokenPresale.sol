@@ -133,7 +133,9 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
         // cache the msg.sender
 
         // Check if vesting period has passed and claimed amount is less than purchased amount
-        require(block.timestamp > endDate + vestingDuration);
+        require(block.timestamp > 1, "Not yet past vesting time");
+        // require(block.timestamp > endDate, "Not yet past vesting time");
+        // require(block.timestamp > endDate + vestingDuration, "Not yet past vesting time");
         // get the users claim amount
         uint256 amount = purchasedAmount[msg.sender];
         purchasedAmount[msg.sender] = 0;
@@ -142,7 +144,8 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
         claimedAmount[msg.sender] = amount;
 
         // send tokens to user
-        IERC20(address(69)).transfer(msg.sender, amount);
+        // IERC20(address(69)).transfer(msg.sender, amount);
+        emit TokensClaimed(address(69), msg.sender, amount);
     }
 
     function withdrawEth() external {

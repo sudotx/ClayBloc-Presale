@@ -2,21 +2,46 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {TokenPresale} from "../src/TokenPresale.sol";
+import {TokenPresale} from "src/TokenPresale.sol";
+
+import {MockUSDC} from "test/Mocks/MockToken.sol";
 
 contract TestPS1 is Test {
     TokenPresale public presale;
+    MockUSDC public token;
+    address public protocolVault;
+    address public uniswapV2Vault;
+    address public deployer;
+    address public alice;
+    address public bob;
+    address public chad;
 
     function setUp() public {
-        presale = new TokenPresale(1, address(0), address(1), address(2));
-        console2.log("address of the presale contract", address(presale));
+        uniswapV2Vault = address(69);
+        protocolVault = makeAddr("Vault");
+
+        alice = makeAddr("Alice");
+        bob = makeAddr("Bob");
+        chad = makeAddr("Chad");
+        deployer = makeAddr("Deployer");
+
+        vm.prank(deployer);
+        presale = new TokenPresale(100, protocolVault, msg.sender, uniswapV2Vault);
+        assertEq(presale.owner(), deployer);
+        vm.stopPrank();
     }
 
     function testBuyTokens() external {
-        console2.log("address of the presale contract", address(presale));
+        // console2.log("address of the presale contract", address(presale));
+        // bytes32[] calldata a;
+        // presale.buyTokens{value: 0.5 ether}(a);
     }
 
-    function testBuyTokensFailUnsuccesfulTransfer() external {}
+    function testBuyTokensFailUnsuccesfulTransfer() external {
+        vm.roll(presale.endDate() + presale.vestingDuration());
+        presale.totalPurchasedAmount();
+    }
+
     function testBuyTokensFailReenter() external {}
     function testBuyTokensFailInvalidProof() external {}
     function testBuyTokensFailZeroValue() external {}
@@ -24,7 +49,11 @@ contract TestPS1 is Test {
     function testBuyTokensFailInvalidState() external {}
     function testClaimTokensFailUserDepositedAndClaimed() external {}
     function testClaimTokensFailVestingPeriodStillActive() external {}
-    function testClaimTokensInvalidCaller() external {}
+
+    function testClaimTokensInvalidCaller() external {
+        presale.claimTokens();
+    }
+
     function testClaimTokensFailReenter() external {}
     function testClaimTokensFail() external {}
     function testWithdrawEth() external {}
