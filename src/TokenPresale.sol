@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "openzeppelin/utils/cryptography/MerkleProof.sol";
-import "openzeppelin/token/ERC20/IERC20.sol";
-import "openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import "openzeppelin/access/Ownable.sol";
+import {MerkleProof} from "openzeppelin/utils/cryptography/MerkleProof.sol";
+import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "openzeppelin/access/Ownable.sol";
 
 interface ILaunchpad {
     // Events

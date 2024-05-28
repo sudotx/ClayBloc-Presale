@@ -13,7 +13,7 @@ contract TestPS1 is Test {
     }
 
     function testBuyTokens() external {
-        console2.log("address of counter", address(presale));
+        console2.log("address of the presale contract", address(presale));
     }
 
     function testBuyTokensFailUnsuccesfulTransfer() external {}
