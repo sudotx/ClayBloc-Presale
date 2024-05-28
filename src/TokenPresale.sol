@@ -36,9 +36,8 @@ interface ILaunchpad {
     function transferPurchasedOwnership(address _newOwner) external;
 }
 
-contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
+contract TokenPresale is ILaunchpad, Ownable {
     using SafeERC20 for IERC20;
-    // Variables
 
     uint256 constant tokenUnit = 10 ** 18;
     uint256 public immutable minTokenBuy;
@@ -48,11 +47,9 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
     address public immutable protocolFeeAddress;
     uint256 public lockinPeriod;
     uint256 public tokenPrice; // presale price
-
-    address public operator; // admin
     string public name;
-    address public factory; // can be changed by the operator, can be represented as a mapping -> structs, to represent associated fees, and addresses of external platform
-    uint256 public ethPricePerToken; // presale token price
+    address public factory;
+    uint256 public ethPricePerToken;
     uint256 public tokenHardCap = 1000 ether;
     uint256 public protocolFee;
     uint256 public releaseDelay;
@@ -65,25 +62,11 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
     uint256 public wlMinBalance = 1 ether;
     bytes32 public wlRoot;
 
-    // max allocation
     // instead of a dedicated staking contract, liquidity is ssent to the Uniswap pair
     // but first to the presaleVaultAddress
     address presaleVaultAddress;
 
-    // accepts usdc only
-    address usdc;
-
-    // total supply, total private sold
-
-    // Modifiers
-    modifier onlyOperator() {
-        require(msg.sender == operator, "Only operator");
-        _;
-    }
-    // Constructor
-
-    constructor(uint256 _protocolFee, address _protocolFeeAddress, address _operator, address _factory) {
-        operator = _operator;
+    constructor(uint256 _protocolFee, address _protocolFeeAddress, address _factory) Ownable(msg.sender) {
         protocolFee = _protocolFee;
         protocolFeeAddress = _protocolFeeAddress;
         // set uniswap factory
@@ -102,7 +85,7 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    // USER FACING FUNCTIONS
+    //                     USER FACING FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     function buyTokens(bytes32[] calldata proof) external payable {
         // Check if enough ETH sent
@@ -124,9 +107,8 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
         uint256 tokensToReceive = msg.value * 3;
         require(tokensToReceive > 1212, "Unable to fill your order, try a smaller amount"); // check if tokens to be received are up to tokens left unsold
 
-        // log investor
         purchasedAmount[sender] = msg.value;
-        // Transfer ETH to contract
+        totalPurchasedAmount += msg.value;
     }
 
     function claimTokens() external {
@@ -162,11 +144,6 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
         require(success);
     }
 
-    /// Allows the operator to transfer the purchased token amount from one address to another.
-    /// This function checks that the caller is the operator, and then transfers the purchased token amount from the caller's address to the specified new owner address. The total purchased amount for the new owner is updated to include the transferred amount.
-    /// @param _newOwner The address to transfer the purchased tokens to.
-    // this allows any user can delegate thier allocation to others
-
     function transferPurchasedOwnership(address _newOwner) external {
         require(_newOwner != address(0), "Cant allow yoooou burn tokens dawg");
         // check the address is not address(0), to prevent accidental or malicious burning of tokens
@@ -185,7 +162,7 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    // OWNER FUNCTIONS
+    //                      OWNER FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     function updateEthPricePerToken(uint256 _ethPricePerToken) public onlyOwner {
         // require the price to be greater than 0
@@ -221,7 +198,7 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    // GETTER FUNCTIONS
+    //                      GETTER FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
 
     function getClaimedAmount(address _address) private view returns (uint256 amountClaimed) {
@@ -234,7 +211,6 @@ contract TokenPresale is ILaunchpad, Ownable(msg.sender) {
         claimable = purchasedAmount[_address];
     }
 
-    // this allows an external actor to check the current state of the contract
     function isStarted() public view returns (bool) {
         if (block.timestamp > startDate) {
             return true;

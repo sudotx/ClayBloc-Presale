@@ -4,7 +4,6 @@
 all: clean build
 
 build:
-	@echo "BUILDING..."
 	@forge build
 
 dev:
