@@ -4,44 +4,43 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import {TokenPresale} from "../src/TokenPresale.sol";
 
-contract TokenPresaleTest is Test {
-    TokenPresale public counter;
+contract TestPS1 is Test {
+    TokenPresale public presale;
 
     function setUp() public {
-        counter = new TokenPresale(1, address(0), address(1), address(2));
-        console2.log("address of counter", address(counter));
+        presale = new TokenPresale(1, address(0), address(1), address(2));
+        console2.log("address of the presale contract", address(presale));
     }
 
-    // Methodology of Tests
-    // the main objectives of this token presale contract is to allow users
-    // participate
+    function testBuyTokens() external {
+        console2.log("address of counter", address(presale));
+    }
 
-    function TestBuyTokens() external {}
-    function TestBuyTokensFailUnsuccesfulTransfer() external {}
-    function TestBuyTokensFailReenter() external {}
-    function TestBuyTokensFailInvalidProof() external {}
-    function TestBuyTokensFailZeroValue() external {}
-    function TestBuyTokensFail() external {}
-    function TestBuyTokensFailInvalidState() external {}
-    function TestClaimTokensFailUserDepositedAndClaimed() external {}
-    function TestClaimTokensFailVestingPeriodStillActive() external {}
-    function TestClaimTokensInvalidCaller() external {}
-    function TestClaimTokensFailReenter() external {}
-    function TestClaimTokensFail() external {}
-    function TestWithdrawEth() external {}
-    function TestWithdrawEthFail() external {}
-    function TestWithdrawTokens() external {}
-    function TestWithdrawTokensFail() external {}
-    function TestEthToToken() external {}
-    function TestEthToTokenFail() external {}
-    function TestUpdateEthPricePerToken() external {}
-    function TestUpdateEthPricePerTokenFail() external {}
-    function TestIncreaseHardCap() external {}
-    function TestIncreaseHardCapFail() external {}
-    function TestTransferOperatorOwnership() external {}
-    function TestTransferOperatorOwnershipFail() external {}
-    function TestUpdateWhitelist() external {}
-    function TestUpdateWhitelistFail() external {}
-    function TestsetVestingDuration() external {}
-    function TestsetVestingDurationFail() external {}
+    function testBuyTokensFailUnsuccesfulTransfer() external {}
+    function testBuyTokensFailReenter() external {}
+    function testBuyTokensFailInvalidProof() external {}
+    function testBuyTokensFailZeroValue() external {}
+    function testBuyTokensFail() external {}
+    function testBuyTokensFailInvalidState() external {}
+    function testClaimTokensFailUserDepositedAndClaimed() external {}
+    function testClaimTokensFailVestingPeriodStillActive() external {}
+    function testClaimTokensInvalidCaller() external {}
+    function testClaimTokensFailReenter() external {}
+    function testClaimTokensFail() external {}
+    function testWithdrawEth() external {}
+    function testWithdrawEthFail() external {}
+    function testWithdrawTokens() external {}
+    function testWithdrawTokensFail() external {}
+    function testEthToToken() external {}
+    function testEthToTokenFail() external {}
+    function testUpdateEthPricePerToken() external {}
+    function testUpdateEthPricePerTokenFail() external {}
+    function testIncreaseHardCap() external {}
+    function testIncreaseHardCapFail() external {}
+    function testTransferOperatorOwnership() external {}
+    function testTransferOperatorOwnershipFail() external {}
+    function testUpdateWhitelist() external {}
+    function testUpdateWhitelistFail() external {}
+    function testsetVestingDuration() external {}
+    function testsetVestingDurationFail() external {}
 }
