@@ -10,14 +10,22 @@ contract TestPS1 is Test {
     TokenPresale public presale;
     MockUSDC public token;
     address public protocolVault;
-    address public uniswapV2Vault;
     address public deployer;
     address public alice;
     address public bob;
     address public chad;
 
+    address constant uniswapV2Factory = address(69);
+    address constant uniswapV2Router = address(69);
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
+    uint256 public constant INITIAL_SUPPLY = 1000 ether;
+
     function setUp() public {
-        uniswapV2Vault = address(69);
+        token = new MockUSDC();
+        console2.log("The address of the token is", address(token));
+        token.mint(INITIAL_SUPPLY);
+
         protocolVault = makeAddr("Vault");
 
         alice = makeAddr("Alice");
@@ -26,50 +34,43 @@ contract TestPS1 is Test {
         deployer = makeAddr("Deployer");
 
         vm.prank(deployer);
-        presale = new TokenPresale(100, protocolVault, msg.sender, uniswapV2Vault);
+        presale = new TokenPresale(INITIAL_SUPPLY, protocolVault, uniswapV2Factory, uniswapV2Router, WETH);
+        vm.label(address(presale), "presale");
+        vm.label(address(this), "admin");
         assertEq(presale.owner(), deployer);
         vm.stopPrank();
     }
 
-    function testBuyTokens() external {
-        // console2.log("address of the presale contract", address(presale));
-        // bytes32[] calldata a;
-        // presale.buyTokens{value: 0.5 ether}(a);
-    }
-
-    function testBuyTokensFailUnsuccesfulTransfer() external {
-        vm.roll(presale.endDate() + presale.vestingDuration());
-        presale.totalPurchasedAmount();
-    }
-
-    function testBuyTokensFailReenter() external {}
-    function testBuyTokensFailInvalidProof() external {}
-    function testBuyTokensFailZeroValue() external {}
-    function testBuyTokensFail() external {}
-    function testBuyTokensFailInvalidState() external {}
-    function testClaimTokensFailUserDepositedAndClaimed() external {}
-    function testClaimTokensFailVestingPeriodStillActive() external {}
-
-    function testClaimTokensInvalidCaller() external {
+    function testClaimTokens() private {
+        // vm.roll(presale.endDate() + 1);
         presale.claimTokens();
     }
 
-    function testClaimTokensFailReenter() external {}
-    function testClaimTokensFail() external {}
-    function testWithdrawEth() external {}
-    function testWithdrawEthFail() external {}
-    function testWithdrawTokens() external {}
-    function testWithdrawTokensFail() external {}
-    function testEthToToken() external {}
-    function testEthToTokenFail() external {}
-    function testUpdateEthPricePerToken() external {}
-    function testUpdateEthPricePerTokenFail() external {}
-    function testIncreaseHardCap() external {}
-    function testIncreaseHardCapFail() external {}
-    function testTransferOperatorOwnership() external {}
-    function testTransferOperatorOwnershipFail() external {}
-    function testUpdateWhitelist() external {}
-    function testUpdateWhitelistFail() external {}
-    function testsetVestingDuration() external {}
-    function testsetVestingDurationFail() external {}
+    function testClaimTokensFailUserDepositedAndClaimed() external {
+        testClaimTokens();
+        // assert cases
+    }
+
+    // function testClaimTokensFailVestingPeriodStillActive() external {}
+
+    // function testClaimTokensInvalidCaller() external {}
+
+    // function testClaimTokensFailReenter() external {}
+    // function testClaimTokensFail() external {}
+    // function testWithdrawEth() external {}
+    // function testWithdrawEthFail() external {}
+    // function testWithdrawTokens() external {}
+    // function testWithdrawTokensFail() external {}
+    // function testEthToToken() external {}
+    // function testEthToTokenFail() external {}
+    // function testUpdateEthPricePerToken() external {}
+    // function testUpdateEthPricePerTokenFail() external {}
+    // function testIncreaseHardCap() external {}
+    // function testIncreaseHardCapFail() external {}
+    // function testTransferOperatorOwnership() external {}
+    // function testTransferOperatorOwnershipFail() external {}
+    // function testUpdateWhitelist() external {}
+    // function testUpdateWhitelistFail() external {}
+    // function testsetVestingDuration() external {}
+    // function testsetVestingDurationFail() external {}
 }

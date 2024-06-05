@@ -6,6 +6,10 @@ all: clean build
 build:
 	@forge build
 
+stage:
+	@forge test -vvv
+	@git add -p
+
 dev:
 	@echo "WATCHING BUILD..."
 	@forge build --watch
