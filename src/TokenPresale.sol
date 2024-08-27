@@ -16,9 +16,7 @@ interface ILaunchpad {
     event TokenHardCapUpdated(address indexed _token, uint256 newTokenHardCap);
     event OperatorTransferred(address indexed previousOperator, address indexed newOperator);
     event VestingDurationUpdated(uint256 newVestingDuration);
-
     event EthWithdrawn(address indexed _user, uint256 _userAmount, uint256 _feeAmount);
-
     event VestingScheduleUpdated(uint256[] durations, uint256[] percentages);
 
     function isStarted() external view returns (bool);
@@ -175,7 +173,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", address(this), amount);
         (bool success,) = address(WETH).call{value: msg.value}(data);
         require(success, "Transfer failed");
-        emit TokensPurchased(sender, amount, price);
+        emit TokensPurchased(address(0),sender, amount, getCurrentPrice());
     }
 
     //@dev This implementation allows for multiple vesting periods with different release percentages.
