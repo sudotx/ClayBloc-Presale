@@ -116,8 +116,8 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
 
     bool public saleFinalized;
 
-    uint256 minTokenPrice = 1 ether;
-    uint256 maxTokenPrice = 10 ether;
+    uint256 minTokenPrice = 0.025 ether;
+    uint256 maxTokenPrice = 0.5 ether;
 
     Config public config;
 
