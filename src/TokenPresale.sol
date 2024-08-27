@@ -147,7 +147,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     //                     USER FACING FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    function buyTokens(bytes32[] calldata proof, uint256 amount) external payable {
+    function buyTokens(bytes32[] calldata proof, uint256 amount) whenNotPaused external payable {
         require(block.timestamp > startDate, "Sale has not started");
         require(block.timestamp <= endDate, "Sale has ended");
 
@@ -173,13 +173,13 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", address(this), amount);
         (bool success,) = address(WETH).call{value: msg.value}(data);
         require(success, "Transfer failed");
-        emit TokensPurchased(address(0),sender, amount, getCurrentPrice());
+        emit TokensPurchased(address(0), sender, amount, getCurrentPrice());
     }
 
     //@dev This implementation allows for multiple vesting periods with different release percentages.
     // The owner can set the vesting schedule using the setVestingSchedule function.
     // The claimTokens function now calculates the claimable amount based on the current time and the vesting schedule.
-    function claimTokens() external {
+    function claimTokens() whenNotPaused external {
         // check user has something to claim
         require(!hasClaimed[msg.sender], "already claimed");
         require(block.timestamp > endDate, "Vesting period not started");
@@ -211,7 +211,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         }
     }
 
-    function withdrawEth() external {
+    function withdrawEth() whenNotPaused external {
         require(purchasedAmount[msg.sender] != 0, "Nothing to withdraw");
         require(block.timestamp > endDate || saleFinalized, "Sale not ended or finalized");
 
@@ -230,21 +230,29 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         emit EthWithdrawn(msg.sender, userAmount, feeAmount);
     }
 
-    function finalizeSale() external onlyOwner {
-        // Allow early finalization if hard cap is reached
-    }
-
-    function refund() external {
+    function refund() whenNotPaused external {
         // Implement refund mechanism if sale doesn't reach minimum goal
     }
 
-    function getCurrentPrice() public view returns (uint256) {
-        for (uint256 i = 0; i < tiers.length; i++) {
-            if (totalPurchasedAmount < tiers[i].threshold) {
-                return tiers[i].price;
-            }
-        }
-        return tiers[tiers.length - 1].price;
+    function transferPurchasedOwnership(address _newOwner) external {
+        require(_newOwner != address(0), "Cant allow yoooou burn tokens dawg");
+        require(purchasedAmount[msg.sender] != 0, "you need to own some tokens first");
+        // check the address is not address(0), to prevent accidental or malicious burning of tokens
+        // set purchasedAmount for _newOwner to the current purchasedAmount value for msg.sender
+        // add the purchasedAmount value for msg.sender to the purchasedAmount for _newOwner
+        // set purchasedAmount for msg.sender to 0
+        uint256 prevOwnerAmount = purchasedAmount[msg.sender];
+        purchasedAmount[msg.sender] = 0;
+        purchasedAmount[_newOwner] = prevOwnerAmount;
+        // emit event
+    }
+
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
+    //                      OWNER FUNCTIONS
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
+
+    function finalizeSale() external onlyOwner {
+        // Allow early finalization if hard cap is reached
     }
 
     function setTiers(uint256[] memory thresholds, uint256[] memory prices) external onlyOwner {
@@ -259,27 +267,6 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         // Set tiered pricing structure
     }
 
-    function transferPurchasedOwnership(address _newOwner) external {
-        require(_newOwner != address(0), "Cant allow yoooou burn tokens dawg");
-        // check the address is not address(0), to prevent accidental or malicious burning of tokens
-        // set purchasedAmount for _newOwner to the current purchasedAmount value for msg.sender
-        // add the purchasedAmount value for msg.sender to the purchasedAmount for _newOwner
-        // set purchasedAmount for msg.sender to 0
-        uint256 prevOwnerAmount = purchasedAmount[msg.sender];
-        purchasedAmount[msg.sender] = 0;
-        purchasedAmount[_newOwner] = prevOwnerAmount;
-        // emit event
-    }
-
-    function ethToToken(uint256 ethAmount) public view returns (uint256 tokenAmount) {
-        uint256 currentPrice = getCurrentPrice();
-        tokenAmount = (ethAmount * 1e18) / currentPrice;
-        return tokenAmount;
-    }
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    //                      OWNER FUNCTIONS
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     function updateEthPricePerToken(uint256 _ethPricePerToken) public onlyOwner {
         require(_ethPricePerToken != 0, "Price cannot be zero");
         require(_ethPricePerToken >= minTokenPrice, "Price too low");
@@ -347,35 +334,24 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         emit VestingScheduleUpdated(durations, percentages);
     }
 
-    function addLiq() internal onlyOwner {
-        // require(isRaiseClaimed, "takeUSDBRaised not called");
-        // require(block.timestamp >= lockinPeriod + config.LiqGenerationTime, "Lockin period is not over yet");
-        // require(liqAdded, "liqAdded");
-        // uint256 USDBAmount = state.totalSold > state.totalSupplyInValue ? state.totalSupplyInValue : state.totalSold;
-        // USDBAmount = (USDBAmount * (params.liqudityPercentage)) / POINT_BASE;
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
+    //                      VIEW FUNCTIONS
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
 
-        // uint256 tokenAmount = state.totalSold > state.totalSupplyInValue
-        //     ? params.tokenLiquidity
-        //     : params.tokenLiquidity * state.totalSold / state.totalSupplyInValue;
-
-        // IERC20D(params.tokenAddress).approve(address(router), tokenAmount);
-        // router.addLiquidityETH{value: USDBAmount}(
-        //     params.tokenAddress, tokenAmount, 0, 0, address(this), block.timestamp + 10 minutes
-        // );
-        // liqAdded = false;
+    function getCurrentPrice() public view returns (uint256) {
+        for (uint256 i = 0; i < tiers.length; i++) {
+            if (totalPurchasedAmount < tiers[i].threshold) {
+                return tiers[i].price;
+            }
+        }
+        return tiers[tiers.length - 1].price;
     }
 
-    function claimLP() internal onlyOwner {
-        // require(isRaiseClaimed && !liqAdded, "takeUSDBRaised || addliq not called");
-        // require(block.timestamp >= lockinPeriod + config.LPLockin, "Lockin period is not over yet");
-        // address pair = factory.getPair(router.WETH(), params.tokenAddress);
-        // uint256 liquidity = IERC20D(pair).balanceOf(address(this));
-        // if (liquidity > 0) IERC20D(pair).transfer(creator, liquidity);
+    function ethToToken(uint256 ethAmount) public view returns (uint256 tokenAmount) {
+        uint256 currentPrice = getCurrentPrice();
+        tokenAmount = (ethAmount * 1e18) / currentPrice;
+        return tokenAmount;
     }
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    //                      GETTER FUNCTIONS
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
 
     function getClaimedAmount(address _address) public view returns (uint256 amountClaimed) {
         // effectively how much can be claimed currently
