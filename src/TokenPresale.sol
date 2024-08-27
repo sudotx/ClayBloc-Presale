@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {MerkleProof} from "openzeppelin/utils/cryptography/MerkleProof.sol";
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
 import {Pausable} from "openzeppelin/utils/Pausable.sol";
+import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {MerkleProof} from "openzeppelin/utils/cryptography/MerkleProof.sol";
 
 interface ILaunchpad {
     event TokensPurchased(address indexed _token, address indexed buyer, uint256 amount, uint256 price);
@@ -237,10 +237,6 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
     function transferPurchasedOwnership(address _newOwner) external {
         require(_newOwner != address(0), "Cant allow yoooou burn tokens dawg");
         require(purchasedAmount[msg.sender] != 0, "you need to own some tokens first");
-        // check the address is not address(0), to prevent accidental or malicious burning of tokens
-        // set purchasedAmount for _newOwner to the current purchasedAmount value for msg.sender
-        // add the purchasedAmount value for msg.sender to the purchasedAmount for _newOwner
-        // set purchasedAmount for msg.sender to 0
         uint256 prevOwnerAmount = purchasedAmount[msg.sender];
         purchasedAmount[msg.sender] = 0;
         purchasedAmount[_newOwner] = prevOwnerAmount;
