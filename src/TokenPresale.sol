@@ -147,7 +147,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     //                     USER FACING FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
-    function buyTokens(bytes32[] calldata proof, uint256 amount) whenNotPaused external payable {
+    function buyTokens(bytes32[] calldata proof, uint256 amount) external payable whenNotPaused {
         require(block.timestamp > startDate, "Sale has not started");
         require(block.timestamp <= endDate, "Sale has ended");
 
@@ -179,7 +179,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
     //@dev This implementation allows for multiple vesting periods with different release percentages.
     // The owner can set the vesting schedule using the setVestingSchedule function.
     // The claimTokens function now calculates the claimable amount based on the current time and the vesting schedule.
-    function claimTokens() whenNotPaused external {
+    function claimTokens() external whenNotPaused {
         // check user has something to claim
         require(!hasClaimed[msg.sender], "already claimed");
         require(block.timestamp > endDate, "Vesting period not started");
@@ -211,7 +211,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         }
     }
 
-    function withdrawEth() whenNotPaused external {
+    function withdrawEth() external whenNotPaused {
         require(purchasedAmount[msg.sender] != 0, "Nothing to withdraw");
         require(block.timestamp > endDate || saleFinalized, "Sale not ended or finalized");
 
@@ -230,7 +230,7 @@ contract TokenPresale is ILaunchpad, Ownable, Pausable {
         emit EthWithdrawn(msg.sender, userAmount, feeAmount);
     }
 
-    function refund() whenNotPaused external {
+    function refund() external whenNotPaused {
         // Implement refund mechanism if sale doesn't reach minimum goal
     }
 

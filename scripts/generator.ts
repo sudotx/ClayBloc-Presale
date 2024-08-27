@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import { utils } from "ethers";
 
 import { ethers } from "ethers";
 
@@ -52,11 +51,8 @@ function writeCSV(data: string): void {
 }
 
 // Main function to generate data and write to CSV
-function main() {
+(() => {
     const data = generateData();
     const csvData = convertToCSV(data);
     writeCSV(csvData);
-}
-
-// Run the main function
-main();
+})()
