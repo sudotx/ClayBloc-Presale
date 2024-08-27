@@ -5,9 +5,10 @@ import {MerkleProof} from "openzeppelin/utils/cryptography/MerkleProof.sol";
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "openzeppelin/access/Ownable.sol";
+import {Pausable} from "openzeppelin/utils/Pausable.sol";
 
 interface ILaunchpad {
-    event TokensPurchased(address indexed _token, address indexed buyer, uint256 amount);
+    event TokensPurchased(address indexed _token, address indexed buyer, uint256 amount, uint256 price);
     event TokensClaimed(address indexed _token, address indexed buyer, uint256 amount);
     event EthPricePerTokenUpdated(address indexed _token, uint256 newEthPricePerToken);
     event WhitelistUpdated(uint256 wlBlockNumber, uint256 wlMinBalance, bytes32 wlRoot);
@@ -15,6 +16,10 @@ interface ILaunchpad {
     event TokenHardCapUpdated(address indexed _token, uint256 newTokenHardCap);
     event OperatorTransferred(address indexed previousOperator, address indexed newOperator);
     event VestingDurationUpdated(uint256 newVestingDuration);
+
+    event EthWithdrawn(address indexed _user, uint256 _userAmount, uint256 _feeAmount);
+
+    event VestingScheduleUpdated(uint256[] durations, uint256[] percentages);
 
     function isStarted() external view returns (bool);
     function isEnded() external view returns (bool);
@@ -28,7 +33,6 @@ interface ILaunchpad {
     function claimTokens() external;
     function withdrawEth() external;
     function setVestingDuration(uint256 _vestingDuration) external;
-    // function setName(string memory _name) external;
     function transferPurchasedOwnership(address _newOwner) external;
 
     struct Params {
@@ -58,9 +62,20 @@ interface ILaunchpad {
         uint256 totalSold;
         uint256 totalSupplyInValue;
     }
+
+    // Define a struct for tiered pricing
+    struct Tier {
+        uint256 threshold;
+        uint256 price;
+    }
+
+    struct VestingSchedule {
+        uint256 releaseTime;
+        uint256 percentage;
+    }
 }
 
-contract TokenPresale is ILaunchpad, Ownable {
+contract TokenPresale is ILaunchpad, Ownable, Pausable {
     using SafeERC20 for IERC20;
 
     uint256 constant tokenUnit = 10 ** 18;
@@ -94,9 +109,17 @@ contract TokenPresale is ILaunchpad, Ownable {
     address public WETH;
 
     bytes32 public wlRoot;
+    Tier[] public tiers;
+    VestingSchedule[] public vestingSchedules;
+
     mapping(address => uint256) public purchasedAmount;
     mapping(address => uint256) public claimedAmount;
     mapping(address => bool) public hasClaimed;
+
+    bool public saleFinalized;
+
+    uint256 minTokenPrice = 1 ether;
+    uint256 maxTokenPrice = 10 ether;
 
     Config public config;
 
@@ -127,74 +150,115 @@ contract TokenPresale is ILaunchpad, Ownable {
     //                     USER FACING FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     function buyTokens(bytes32[] calldata proof, uint256 amount) external payable {
-        // invest ETH in token sale
-        // require sender is not blacklisted
-        // check if user is blacklisted
-        // require(sender, "User Blacklisted");
+        require(block.timestamp > startDate, "Sale has not started");
+        require(block.timestamp <= endDate, "Sale has ended");
+
+        address sender = msg.sender;
+
         require(amount > amount * ethPricePerToken); // require sender send enough value
         // check if presale has started and ended
         require(block.timestamp > startDate);
 
         // cache the msg.sender for gas savings, and referencing later on
-        address sender = msg.sender;
 
         bytes32 leaf = keccak256(abi.encodePacked(sender));
         bool verificationStatus = MerkleProof.verify(proof, wlRoot, leaf);
         require(verificationStatus, "Not Whitelisted");
 
-        // Calculate token amount based on ETH price
-        uint256 tokensToReceive = amount * ethPricePerToken; // total amount to send to user based on price;
-        require(tokensToReceive > tokenHardCap, "Unable to fill your order, try a smaller amount"); // check if tokens to be received are up to tokens left unsold, wherer 1212 stands as total available supply
+        uint256 price = getCurrentPrice();
+        uint256 tokensToReceive = amount * price;
+        require(tokensToReceive <= tokenHardCap - totalPurchasedAmount, "Exceeds hard cap");
 
-        purchasedAmount[sender] = amount;
-        // globally tracking how much tokens have been purchased.
+        purchasedAmount[sender] += amount;
         totalPurchasedAmount += amount;
 
         bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", address(this), amount);
-        (bool success,) = address(WETH).call(data);
-        require(success);
+        (bool success,) = address(WETH).call{value: msg.value}(data);
+        require(success, "Transfer failed");
+        emit TokensPurchased(sender, amount, price);
     }
 
+    //@dev This implementation allows for multiple vesting periods with different release percentages.
+    // The owner can set the vesting schedule using the setVestingSchedule function.
+    // The claimTokens function now calculates the claimable amount based on the current time and the vesting schedule.
     function claimTokens() external {
         // check user has something to claim
         require(!hasClaimed[msg.sender], "already claimed");
+        require(block.timestamp > endDate, "Vesting period not started");
 
-        // cache the msg.sender
+        uint256 totalClaimable;
 
-        // Check if vesting period has passed and claimed amount is less than purchased amount
-        // require(block.timestamp > 1, "Not yet past vesting time");
-        require(block.timestamp > endDate, "Not yet past vesting time");
-        // require(block.timestamp > endDate + vestingDuration, "Not yet past vesting time");
-        // get the users claim amount
-        uint256 amount = purchasedAmount[msg.sender];
-        purchasedAmount[msg.sender] = 0;
+        uint256 purchasedTokens = purchasedAmount[msg.sender];
 
-        // check if user has deposited tokens and has not already claimed
-        claimedAmount[msg.sender] = amount;
+        for (uint256 i = 0; i < vestingSchedules.length; i++) {
+            if (block.timestamp >= endDate + vestingSchedules[i].releaseTime) {
+                uint256 claimAmount = (purchasedTokens * vestingSchedules[i].percentage) / 100;
+                totalClaimable += claimAmount;
+            }
+        }
 
-        // send tokens to user
-        bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", msg.sender, amount);
+        totalClaimable -= claimedAmount[msg.sender];
+        require(totalClaimable > 0, "No tokens available to claim");
+
+        claimedAmount[msg.sender] += totalClaimable;
+
+        bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", msg.sender, totalClaimable);
         (bool success,) = address(WETH).call(data);
-        require(success);
-        emit TokensClaimed(address(69), msg.sender, amount);
+        require(success, "Token transfer failed");
+
+        emit TokensClaimed(address(WETH), msg.sender, totalClaimable);
+
+        if (claimedAmount[msg.sender] == purchasedTokens) {
+            hasClaimed[msg.sender] = true;
+        }
     }
 
     function withdrawEth() external {
         require(purchasedAmount[msg.sender] != 0, "Nothing to withdraw");
-        // require the vesting period has passed
-        require(block.timestamp > endDate + vestingDuration);
-        // cache the msg sender
+        require(block.timestamp > endDate || saleFinalized, "Sale not ended or finalized");
 
         uint256 claimAmount = purchasedAmount[msg.sender];
+        purchasedAmount[msg.sender] = 0;
 
-        bytes memory data = abi.encodeWithSignature("transfer(address, uint256)", msg.sender, claimAmount);
-        (bool success,) = address(WETH).call(data);
-        require(success);
+        uint256 feeAmount = (claimAmount * protocolFee) / 10000; // Assuming protocolFee is in basis points
+        uint256 userAmount = claimAmount - feeAmount;
 
-        // withdraw amount is less than user's balance
-        // process withdrawal
-        // (bool success,) = payable(address(this)).call{value: claimAmount}("");
-        // require(success);
+        (bool successUser,) = msg.sender.call{value: userAmount}("");
+        require(successUser, "User transfer failed");
+
+        (bool successFee,) = protocolFeeAddress.call{value: feeAmount}("");
+        require(successFee, "Fee transfer failed");
+
+        emit EthWithdrawn(msg.sender, userAmount, feeAmount);
+    }
+
+    function finalizeSale() external onlyOwner {
+        // Allow early finalization if hard cap is reached
+    }
+
+    function refund() external {
+        // Implement refund mechanism if sale doesn't reach minimum goal
+    }
+
+    function getCurrentPrice() public view returns (uint256) {
+        for (uint256 i = 0; i < tiers.length; i++) {
+            if (totalPurchasedAmount < tiers[i].threshold) {
+                return tiers[i].price;
+            }
+        }
+        return tiers[tiers.length - 1].price;
+    }
+
+    function setTiers(uint256[] memory thresholds, uint256[] memory prices) external onlyOwner {
+        require(thresholds.length == prices.length, "Mismatched input lengths");
+        delete tiers;
+        for (uint256 i = 0; i < thresholds.length; i++) {
+            tiers.push(Tier(thresholds[i], prices[i]));
+        }
+    }
+
+    function setTieredPricing(uint256[] memory _tiers, uint256[] memory _prices) external onlyOwner {
+        // Set tiered pricing structure
     }
 
     function transferPurchasedOwnership(address _newOwner) external {
@@ -209,24 +273,37 @@ contract TokenPresale is ILaunchpad, Ownable {
         // emit event
     }
 
-    function ethToToken(uint256 ethAmount) public view returns (uint256 price) {
-        // calculate token amount to ETH
+    function ethToToken(uint256 ethAmount) public view returns (uint256 tokenAmount) {
+        uint256 currentPrice = getCurrentPrice();
+        tokenAmount = (ethAmount * 1e18) / currentPrice;
+        return tokenAmount;
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     //                      OWNER FUNCTIONS
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´*/
     function updateEthPricePerToken(uint256 _ethPricePerToken) public onlyOwner {
-        // require the price to be greater than 0
-        // update the ethPricePerToken
-        // emit an event for the price update
-        require(_ethPricePerToken != 0, "cant be zero");
+        require(_ethPricePerToken != 0, "Price cannot be zero");
+        require(_ethPricePerToken >= minTokenPrice, "Price too low");
+        require(_ethPricePerToken <= maxTokenPrice, "Price too high");
+
         ethPricePerToken = _ethPricePerToken;
+        emit EthPricePerTokenUpdated(address(WETH), _ethPricePerToken);
     }
 
     function increaseHardCap(uint256 _tokenHardCapIncrement) public onlyOwner {
-        // increment current hard cap
-        tokenHardCap += _tokenHardCapIncrement;
+        // This implementation adjusts the hard cap dynamically based on the elapsed time of the sale.
+        // It allows for a maximum increase of 20% of the initial hard cap, with the allowed increase growing linearly over time.
+        // The function ensures that the actual increase doesn't exceed the allowed increase based on the current time.
+        uint256 elapsedTime = block.timestamp - startDate;
+        uint256 totalDuration = endDate - startDate;
+        uint256 maxIncrease = (tokenHardCap * 20) / 100; // 20% max increase
+
+        uint256 allowedIncrease = (maxIncrease * elapsedTime) / totalDuration;
+        uint256 actualIncrease = _tokenHardCapIncrement > allowedIncrease ? allowedIncrease : _tokenHardCapIncrement;
+
+        tokenHardCap += actualIncrease;
+        emit TokenHardCapUpdated(address(WETH), tokenHardCap);
     }
 
     function updateWhitelist(uint256 _wlBlockNumber, uint256 _wlMinBalance, bytes32 _wlRoot) public onlyOwner {
@@ -248,6 +325,28 @@ contract TokenPresale is ILaunchpad, Ownable {
         // implement roles, only admin with operator role should be able to change this
         require(config.NoOfVestingIntervals == 0);
         config = _config;
+    }
+
+    function setVestingSchedule(uint256[] memory durations, uint256[] memory percentages) external onlyOwner {
+        // This implementation allows the owner to set multiple vesting periods, each with its own duration and release percentage.
+        //  It ensures that the total percentage equals 100% and that all durations and percentages are greater than zero.
+        //  The function also emits an event to log the updated vesting schedule.
+        require(durations.length == percentages.length, "Mismatched input lengths");
+        require(durations.length > 0, "At least one vesting period required");
+
+        delete vestingSchedules;
+        uint256 totalPercentage = 0;
+
+        for (uint256 i = 0; i < durations.length; i++) {
+            require(durations[i] > 0, "Duration must be greater than 0");
+            require(percentages[i] > 0, "Percentage must be greater than 0");
+            totalPercentage += percentages[i];
+            vestingSchedules.push(VestingSchedule(durations[i], percentages[i]));
+        }
+
+        require(totalPercentage == 100, "Total percentage must equal 100");
+
+        emit VestingScheduleUpdated(durations, percentages);
     }
 
     function addLiq() internal onlyOwner {
